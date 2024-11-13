@@ -86,20 +86,34 @@ if (isset($_POST['upload'])) {
                 $msg = "<strong>Rất tiếc!</strong> Loại file không hợp lệ. Chỉ cho phép các định dạng JPG, PNG, và GIF.";
                 $sta = "danger"; // Trạng thái nguy hiểm
             } else {
+                // Hàm kiểm tra và tạo tên tệp không trùng
+                function generate_unique_filename($directory, $prefix, $extension) {
+                    $index = 1;
+                    $date_str = date('d_m_Y');
+                    
+                    do {
+                        $new_filename = $prefix . "_" . $date_str . "_" . $index;
+                        // Sử dụng glob để tìm các file có tên tương tự mà không cần quan tâm đuôi file
+                        $existing_files = glob($directory . $new_filename . ".*");
+                        $index++;
+                    } while (!empty($existing_files));
+                
+                    // Trả về tên file duy nhất (không bao gồm phần mở rộng)
+                    return $new_filename .".". $extension;
+                }
+
                 // Xử lý upload file nếu hợp lệ
                 $tmp_file1 = $_FILES['file_upload1']['tmp_name'];
-                $target_file1 = basename($_FILES['file_upload1']['name']);  
-                $file_typ1 = pathinfo($target_file1, PATHINFO_EXTENSION);
-                $ran = rand(1000, 9999999); // Tạo tên file ngẫu nhiên
-                $f_inst1 = date('m') . "_" . date('d') . "_" . "$ran." . $file_typ1;
+                $file_typ1 = pathinfo($_FILES['file_upload1']['name'], PATHINFO_EXTENSION);
+                $f_inst1 = generate_unique_filename($upload_dir1, "Hình_ảnh", $file_typ1); // Tạo tên ảnh không trùng
                 $rename_file1 = $upload_dir1 . $f_inst1;
 
                 // Di chuyển file đã upload vào thư mục lưu trữ
-                if (move_uploaded_file($tmp_file1, $upload_dir1 . $target_file1)) {
-                    rename($upload_dir1 . $target_file1, $rename_file1); // Đổi tên file
+                if (move_uploaded_file($tmp_file1, $rename_file1)) {
                     // Thay đổi kích thước và nén ảnh
-                    resize_image($upload_dir1.$f_inst1, $upload_dir2.$f_inst1, 300, 300);
-                    compressImage($upload_dir1.$f_inst1, $upload_dir3.$f_inst1, 9);
+                    compressImage($rename_file1, $upload_dir3.$f_inst1, 9);
+                    //Thay đổi kích thước sau khi nén ảnh
+                    resize_image($upload_dir3.$f_inst1, $upload_dir2.$f_inst1, 300, 300);
                     // Hiển thị thông báo thành công
                     $msg = "<strong>Thành công!</strong> File <a href='$upload_dir1/$f_inst1'><i>$f_inst1</i></a> đã được tải thành công vào thư mục: <i>$upload_dir1</i><br>
                     <small>Resized version: <a href='$upload_dir2/$f_inst1'><i>$f_inst1</i></a>| Compressed version: <a href='$upload_dir3/$f_inst1'><i>$f_inst1</i></a></small>";
@@ -113,6 +127,7 @@ if (isset($_POST['upload'])) {
         }
     }
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="vi">
